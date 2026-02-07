@@ -8,6 +8,24 @@ let verificationQuestions = [];
 let faculties = [];
 let isSuper = false;
 
+// Utility functions
+function showError(message) {
+    alert('Xəta: ' + message);
+}
+
+function showSuccess(message) {
+    alert(message);
+}
+
+function showLoading(show = true) {
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (show) {
+        loadingScreen.classList.remove('hidden');
+    } else {
+        loadingScreen.classList.add('hidden');
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     await checkAuth();
@@ -16,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Check authentication
 async function checkAuth() {
     try {
+        showLoading(true);
         const res = await fetch('/api/me');
         if (res.ok) {
             currentUser = await res.json();
@@ -25,7 +44,10 @@ async function checkAuth() {
             showAuthScreen();
         }
     } catch (error) {
+        console.error('Autentifikasiya xətası:', error);
         showAuthScreen();
+    } finally {
+        showLoading(false);
     }
 }
 
@@ -33,11 +55,18 @@ async function checkAuth() {
 async function loadFaculties() {
     try {
         const res = await fetch('/api/faculties');
+        if (!res.ok) {
+            throw new Error('Fakultələr yüklənə bilmədi');
+        }
         faculties = await res.json();
         
         // Populate faculty dropdowns
         const regFacultySelect = document.getElementById('regFaculty');
         const profileFacultySelect = document.getElementById('profileFaculty');
+        
+        // Clear existing options
+        regFacultySelect.innerHTML = '';
+        profileFacultySelect.innerHTML = '';
         
         faculties.forEach(f => {
             const option1 = document.createElement('option');
@@ -52,6 +81,7 @@ async function loadFaculties() {
         });
     } catch (error) {
         console.error('Fakultələr yüklənmə xətası:', error);
+        showError('Fakultələr yüklənmədi. Səhifəni yeniləyin.');
     }
 }
 
@@ -258,7 +288,7 @@ async function showChatScreen() {
     socket = io();
 
     // Update user info
-    const avatarUrl = currentUser.avatar === 1 ? 'https://www.genspark.ai/api/files/s/rtVcG30L' : 'https://www.genspark.ai/api/files/s/ld8DnPfU';
+    const avatarUrl = currentUser.avatar === 1 ? '/avatar1.png' : '/avatar2.png';
     document.getElementById('userAvatar').src = avatarUrl;
     document.getElementById('userName').textContent = currentUser.full_name;
     document.getElementById('userFaculty').textContent = currentUser.faculty;
@@ -383,7 +413,7 @@ function appendMessage(message, scroll = true) {
     const container = document.getElementById('messagesContainer');
     const isOwn = message.user_id === currentUser.id;
 
-    const avatarUrl = message.avatar === 1 ? 'https://www.genspark.ai/api/files/s/rtVcG30L' : 'https://www.genspark.ai/api/files/s/ld8DnPfU';
+    const avatarUrl = message.avatar === 1 ? '/avatar1.png' : '/avatar2.png';
 
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${isOwn ? 'own' : ''}`;
@@ -546,7 +576,7 @@ function appendPrivateMessage(message, scroll = true) {
     const container = document.getElementById('privateMessagesContainer');
     const isOwn = message.sender_id === currentUser.id;
 
-    const avatarUrl = message.avatar === 1 ? 'https://www.genspark.ai/api/files/s/rtVcG30L' : 'https://www.genspark.ai/api/files/s/ld8DnPfU';
+    const avatarUrl = message.avatar === 1 ? '/avatar1.png' : '/avatar2.png';
 
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${isOwn ? 'own' : ''}`;

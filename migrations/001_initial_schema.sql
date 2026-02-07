@@ -13,6 +13,15 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Session table for express-session
+CREATE TABLE IF NOT EXISTS session (
+    sid VARCHAR NOT NULL COLLATE "default",
+    sess JSON NOT NULL,
+    expire TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (sid)
+);
+CREATE INDEX IF NOT EXISTS IDX_session_expire ON session (expire);
+
 -- Faculties table (16 fakultə)
 CREATE TABLE IF NOT EXISTS faculties (
     id SERIAL PRIMARY KEY,

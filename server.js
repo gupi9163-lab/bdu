@@ -29,14 +29,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   store: new pgSession({
     pool: pool,
-    tableName: 'session'
+    tableName: 'session',
+    createTableIfMissing: true
   }),
   secret: process.env.SESSION_SECRET || 'bdu-chat-secret-key-2024',
   resave: false,
   saveUninitialized: false,
   cookie: { 
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    secure: process.env.NODE_ENV === 'production'
+    secure: false, // HTTP üçün false, HTTPS üçün true
+    httpOnly: true
   }
 }));
 
@@ -740,8 +742,29 @@ setInterval(async () => {
   }
 }, 60000); // Hər dəqiqə
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Server xətası:', err);
+  res.status(500).json({ error: 'Server xətası baş verdi' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Səhifə tapılmadı' });
+});
+
 // PORT konfiqurasiyası (Render.com üçün)
 const PORT = process.env.PORT || 3000;
+
+// Test database connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('❌ Database bağlantı xətası:', err);
+    console.log('⚠️  Server database olmadan işləyir (bəzi funksiyalar işləməyəcək)');
+  } else {
+    console.log('✅ Database bağlantısı uğurlu');
+  }
+});
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server ${PORT} portunda işləyir`);
