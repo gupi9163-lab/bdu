@@ -198,9 +198,20 @@ npm start
 
 ## Deployment Status
 - **Platform**: Render.com
-- **Status**: 🔄 Hazırlanır
+- **Status**: ✅ Hazır (GitHub-da)
+- **Repository**: https://github.com/gupi9163-lab/bdu
 - **Database**: PostgreSQL (Render.com)
 - **Last Updated**: 2026-02-07
+
+## Son Yeniliklər (v1.1)
+- ✅ Avatar şəkilləri lokal fayllar kimi əlavə edildi
+- ✅ Session table avtomatik yaradılır
+- ✅ Error handling və logging təkmilləşdirildi
+- ✅ Frontend error feedback əlavə edildi
+- ✅ Database bağlantı testi server başlayanda
+- ✅ Global error handler əlavə edildi
+- ✅ 404 handler əlavə edildi
+- ✅ Loading states optimizasiya edildi
 
 ## Müəllif
 Bakı Dövlət Universiteti tələbələri üçün
