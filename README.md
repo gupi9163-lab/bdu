@@ -47,42 +47,81 @@
 9. **admins** - Admin istifadəçiləri
 10. **session** - Session məlumatları
 
-## Quraşdırma
+## Quraşdırma və Deploy
 
-### 1. Database Migrasiyanı İcra Et
+### Render.com-da Deploy
+
+#### 1. GitHub Repo Hazırdır
+✅ Kod: https://github.com/gupi9163-lab/bdu
+
+#### 2. Render.com-da Web Service Yarat
+
+1. **Render.com Dashboard-a daxil ol**: https://dashboard.render.com/
+2. **New +** düyməsinə bas və **Web Service** seç
+3. **Connect GitHub** - `gupi9163-lab/bdu` repo-nu seç
+4. **Konfiqurasiya**:
+   - **Name**: `bdu-chat` (və ya istənilən ad)
+   - **Region**: Oregon (database ilə eyni region)
+   - **Branch**: `main`
+   - **Root Directory**: (boş burax)
+   - **Runtime**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Instance Type**: Free
+
+5. **Environment Variables əlavə et**:
+   ```
+   DATABASE_URL=postgresql://bdus_1be8_user:Ap7bFxafa9S0gpFm0H1C9qB8mmrf4c@dpg-d831174e80s73becsig-a.oregon-postgres.render.com/bdus_1be8
+   
+   SESSION_SECRET=bdu-chat-secret-key-2024-super-secure
+   
+   NODE_ENV=production
+   ```
+
+6. **Create Web Service** düyməsinə bas
+
+#### 3. Database Migration İcra Et
+
+Deploy uğurlu olduqdan sonra:
+
+1. Render.com dashboard-da servisini aç
+2. **Shell** tab-a keç
+3. Aşağıdakı komandanı icra et:
+   ```bash
+   node migrate.js
+   ```
+
+4. Migration uğurlu olduqdan sonra servisi restart et
+
+#### 4. Servisi Aç
+
+Deploy tamamlandıqdan sonra:
+- URL: `https://bdu-chat.onrender.com` (və ya sənin servis adın)
+- Admin giriş:
+  - İstifadəçi adı: `618ursamajor618major`
+  - Şifrə: `majorursa618`
+
+### Lokal Development
+
 ```bash
-# Render.com PostgreSQL console-dan
-psql postgresql://bdus_1be8_user:Ap7bFxafa9S0gpFm0H1C9qB8mmrf4c@dpg-d831174e80s73becsig-a.oregon-postgres.render.com/bdus_1be8
+# Clone repo
+git clone https://github.com/gupi9163-lab/bdu.git
+cd bdu
 
-# Migration faylını icra et
-\i /path/to/migrations/001_initial_schema.sql
-```
-
-### 2. Environment Variables
-`.env` faylında:
-```
-DB_HOST=dpg-d831174e80s73becsig-a.oregon-postgres.render.com
-DB_PORT=5432
-DB_NAME=bdus_1be8
-DB_USER=bdus_1be8_user
-DB_PASSWORD=Ap7bFxafa9S0gpFm0H1C9qB8mmrf4c
-SESSION_SECRET=bdu-chat-secret-key-2024-super-secure
-NODE_ENV=production
-PORT=3000
-```
-
-### 3. Lokal İşlətmə
-```bash
+# Install dependencies
 npm install
-npm start
-```
 
-### 4. Render.com Deploy
-1. GitHub-a push et
-2. Render.com-da yeni Web Service yarat
-3. GitHub repo-nu bağla
-4. Environment variables əlavə et
-5. Deploy et
+# Environment variables (.env faylı artıq mövcuddur)
+# DATABASE_URL və SESSION_SECRET dəyişdirmə
+
+# Run migration (yalnız ilk dəfə)
+node migrate.js
+
+# Start server
+npm start
+
+# Server http://localhost:3000-də işləyəcək
+```
 
 ## API Endpoints
 
