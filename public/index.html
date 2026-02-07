@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDU Chat - Bakı Dövlət Universiteti</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Login/Register Screen */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            display: flex;
+            height: 100vh;
+            background: #f5f7fb;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f7fb;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .message.own {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #667eea;
+            object-fit: cover;
+        }
+
+        .message-content {
+            max-width: 60%;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .message.own .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .message.own .message-header {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .message-text {
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .message.own .message-time {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .message-options {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+        }
+
+        .message.own .message-options {
+            color: white;
+        }
+
+        .options-menu {
+            position: absolute;
+            top: 30px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 8px 0;
+            min-width: 150px;
+            z-index: 1000;
+        }
+
+        .options-menu button {
+            width: 100%;
+            text-align: left;
+            padding: 10px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .options-menu button:hover {
+            background: #f5f5f5;
+        }
+
+        .input-container {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .input-container input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Faculty list */
+        .faculty-item {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .faculty-item:hover {
+            background: #f5f7fb;
+        }
+
+        .faculty-item.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Avatar selection */
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .avatar-option {
+            cursor: pointer;
+            border: 3px solid transparent;
+            border-radius: 12px;
+            padding: 8px;
+            transition: all 0.2s;
+        }
+
+        .avatar-option:hover {
+            border-color: #667eea;
+        }
+
+        .avatar-option.selected {
+            border-color: #667eea;
+            background: #f5f7fb;
+        }
+
+        .avatar-option img {
+            width: 100%;
+            border-radius: 50%;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #f5f7fb;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Form inputs */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Topic of day */
+        .topic-banner {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            padding: 12px 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: absolute;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                z-index: 100;
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .message-content {
+                max-width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="auth-container">
+        <div class="auth-card">
+            <div style="text-align: center;">
+                <i class="fas fa-spinner fa-spin text-6xl text-purple-600 mb-4"></i>
+                <h2 class="text-2xl font-bold">Yüklənir...</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Screen (Login/Register/Admin) -->
+    <div id="authScreen" class="auth-container hidden">
+        <div class="auth-card">
+            <div style="text-align: center; margin-bottom: 32px;">
+                <h1 class="text-3xl font-bold text-purple-600 mb-2">BDU Chat</h1>
+                <p class="text-gray-600">Bakı Dövlət Universiteti Tələbə Platforması</p>
+            </div>
+
+            <!-- Auth Tabs -->
+            <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                <button onclick="switchAuthTab('login')" id="loginTab" class="btn-primary">Giriş</button>
+                <button onclick="switchAuthTab('register')" id="registerTab" class="btn-secondary">Qeydiyyat</button>
+                <button onclick="switchAuthTab('admin')" id="adminTab" class="btn-secondary">Admin</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="ad@bsu.edu.az">
+                </div>
+                <div class="form-group">
+                    <label>Şifrə</label>
+                    <input type="password" id="loginPassword" placeholder="Şifrənizi daxil edin">
+                </div>
+                <button onclick="login()" class="btn-primary">Daxil ol</button>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="hidden">
+                <div class="form-group">
+                    <label>Ad və Soyad</label>
+                    <input type="text" id="regFullName" placeholder="Adınız və Soyadınız">
+                </div>
+                <div class="form-group">
+                    <label>Email (@bsu.edu.az)</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="text" id="regEmailPrefix" placeholder="ad" style="flex: 1;">
+                        <span>@bsu.edu.az</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Telefon</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span>+994</span>
+                        <input type="text" id="regPhone" placeholder="501234567" maxlength="9" style="flex: 1;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Fakultə</label>
+                    <select id="regFaculty"></select>
+                </div>
+                <div class="form-group">
+                    <label>Dərəcə</label>
+                    <select id="regDegree">
+                        <option value="bakalavr">Bakalavr</option>
+                        <option value="magistr">Magistr</option>
+                        <option value="doktorantura">Doktorantura</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Kurs</label>
+                    <select id="regCourse">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Profil Şəkli Seç</label>
+                    <div class="avatar-grid">
+                        <div class="avatar-option selected" onclick="selectAvatar(1)">
+                            <img src="https://www.genspark.ai/api/files/s/rtVcG30L" alt="Avatar 1" id="avatar1">
+                        </div>
+                        <div class="avatar-option" onclick="selectAvatar(2)">
+                            <img src="https://www.genspark.ai/api/files/s/ld8DnPfU" alt="Avatar 2" id="avatar2">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Şifrə</label>
+                    <input type="password" id="regPassword" placeholder="Şifrənizi daxil edin">
+                </div>
+                <button onclick="startVerification()" class="btn-primary">Növbəti: Doğrulama</button>
+            </div>
+
+            <!-- Admin Form -->
+            <div id="adminForm" class="hidden">
+                <div class="form-group">
+                    <label>İstifadəçi adı</label>
+                    <input type="text" id="adminUsername" placeholder="İstifadəçi adınız">
+                </div>
+                <div class="form-group">
+                    <label>Şifrə</label>
+                    <input type="password" id="adminPassword" placeholder="Şifrəniz">
+                </div>
+                <button onclick="adminLogin()" class="btn-primary">Admin girişi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verification Modal -->
+    <div id="verificationModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Doğrulama Sualları</h2>
+            <p class="mb-6 text-gray-600">Minimum 2 sual doğru cavablandırılmalıdır</p>
+            <div id="verificationQuestions"></div>
+            <button onclick="submitRegistration()" class="btn-primary mt-6">Qeydiyyatı tamamla</button>
+            <button onclick="closeVerification()" class="btn-secondary mt-2">Geri</button>
+        </div>
+    </div>
+
+    <!-- Chat Screen -->
+    <div id="chatScreen" class="chat-container hidden">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div style="padding: 20px; border-bottom: 1px solid #e0e0e0;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <img id="userAvatar" src="" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #667eea;">
+                    <div style="flex: 1;">
+                        <div id="userName" style="font-weight: 600;"></div>
+                        <div id="userFaculty" style="font-size: 12px; color: #666;"></div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="showProfile()" class="btn-secondary" style="flex: 1;">Profil</button>
+                    <button onclick="logout()" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; flex: 1;">Çıxış</button>
+                </div>
+            </div>
+
+            <div style="padding: 12px 20px; background: #f5f7fb; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                <span>Fakültə Otaqları</span>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="showRules()" title="Qaydalar"><i class="fas fa-book"></i></button>
+                    <button onclick="showAbout()" title="Haqqında"><i class="fas fa-info-circle"></i></button>
+                </div>
+            </div>
+
+            <div id="facultyList" style="flex: 1; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-main">
+            <!-- Topic of Day Banner -->
+            <div id="topicBanner" class="topic-banner hidden"></div>
+
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div>
+                    <h2 id="chatTitle" style="font-size: 20px; font-weight: 600;"></h2>
+                    <p id="chatSubtitle" style="font-size: 14px; color: #666;"></p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="toggleSidebar()" style="display: none;" id="menuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="messagesContainer" class="messages-container"></div>
+
+            <!-- Input -->
+            <div class="input-container">
+                <input type="text" id="messageInput" placeholder="Mesajınızı yazın..." onkeypress="handleEnter(event)">
+                <button onclick="sendMessage()" class="send-btn">
+                    <i class="fas fa-paper-plane"></i> Göndər
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden" style="background: white; min-height: 100vh;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px;">
+            <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+                <h1 style="font-size: 24px; font-weight: 700;">Admin Panel</h1>
+                <button onclick="adminLogout()" style="background: white; color: #667eea; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">Çıxış</button>
+            </div>
+        </div>
+
+        <div style="max-width: 1200px; margin: 0 auto; padding: 24px;">
+            <!-- Admin Tabs -->
+            <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+                <button onclick="switchAdminTab('users')" id="adminUsersTab" class="btn-primary" style="width: auto; padding: 10px 20px;">İstifadəçilər</button>
+                <button onclick="switchAdminTab('suspicious')" id="adminSuspiciousTab" class="btn-secondary" style="width: auto; padding: 10px 20px;">Şübhəli Hesablar</button>
+                <button onclick="switchAdminTab('settings')" id="adminSettingsTab" class="btn-secondary" style="width: auto; padding: 10px 20px;">Parametrlər</button>
+                <button onclick="switchAdminTab('create-admin')" id="adminCreateTab" class="btn-secondary" style="width: auto; padding: 10px 20px;">Alt Admin Yarat</button>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="adminUsersContent">
+                <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px;">İstifadəçilər (<span id="usersCount">0</span>)</h2>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f7fb;">
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">ID</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Ad Soyad</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Email</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Telefon</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Fakultə</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Status</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Əməliyyat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Suspicious Tab -->
+            <div id="adminSuspiciousContent" class="hidden">
+                <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 16px;">Şübhəli Hesablar (8+ şikayət)</h2>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f5f7fb;">
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">ID</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Ad Soyad</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Email</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Şikayət Sayı</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Status</th>
+                                <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Əməliyyat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suspiciousTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="adminSettingsContent" class="hidden">
+                <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 24px;">Parametrlər</h2>
+                
+                <div style="display: grid; gap: 24px;">
+                    <div class="form-group">
+                        <label>Günün Mövzusu</label>
+                        <input type="text" id="settingTopicOfDay" placeholder="Günün mövzusunu daxil edin">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Qaydalar</label>
+                        <textarea id="settingRules" rows="6" style="width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px;" placeholder="Qaydaları daxil edin"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Haqqında</label>
+                        <textarea id="settingAbout" rows="6" style="width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px;" placeholder="Haqqında məlumatı daxil edin"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Filtr Sözləri (vergüllə ayırın)</label>
+                        <input type="text" id="settingFilterWords" placeholder="söz1, söz2, söz3">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label>Qrup Mesajlarının Silinmə Vaxtı</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="settingGroupExpiry" placeholder="0" style="flex: 1;">
+                                <select id="settingGroupExpiryUnit" style="width: auto;">
+                                    <option value="minutes">Dəqiqə</option>
+                                    <option value="hours">Saat</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Şəxsi Mesajların Silinmə Vaxtı</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="settingPrivateExpiry" placeholder="0" style="flex: 1;">
+                                <select id="settingPrivateExpiryUnit" style="width: auto;">
+                                    <option value="minutes">Dəqiqə</option>
+                                    <option value="hours">Saat</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="saveAdminSettings()" class="btn-primary">Saxla</button>
+                </div>
+            </div>
+
+            <!-- Create Admin Tab -->
+            <div id="adminCreateContent" class="hidden">
+                <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 24px;">Alt Admin Yarat</h2>
+                
+                <div style="max-width: 500px;">
+                    <div class="form-group">
+                        <label>İstifadəçi adı</label>
+                        <input type="text" id="newAdminUsername" placeholder="İstifadəçi adı">
+                    </div>
+                    <div class="form-group">
+                        <label>Şifrə</label>
+                        <input type="password" id="newAdminPassword" placeholder="Şifrə">
+                    </div>
+                    <button onclick="createSubAdmin()" class="btn-primary">Alt Admin Yarat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-6">Profil Redaktəsi</h2>
+            
+            <div class="form-group">
+                <label>Ad və Soyad</label>
+                <input type="text" id="profileFullName">
+            </div>
+            <div class="form-group">
+                <label>Fakultə</label>
+                <select id="profileFaculty"></select>
+            </div>
+            <div class="form-group">
+                <label>Dərəcə</label>
+                <select id="profileDegree">
+                    <option value="bakalavr">Bakalavr</option>
+                    <option value="magistr">Magistr</option>
+                    <option value="doktorantura">Doktorantura</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Kurs</label>
+                <select id="profileCourse">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Profil Şəkli</label>
+                <div class="avatar-grid">
+                    <div class="avatar-option" onclick="selectProfileAvatar(1)">
+                        <img src="https://www.genspark.ai/api/files/s/rtVcG30L" alt="Avatar 1" id="profileAvatar1">
+                    </div>
+                    <div class="avatar-option" onclick="selectProfileAvatar(2)">
+                        <img src="https://www.genspark.ai/api/files/s/ld8DnPfU" alt="Avatar 2" id="profileAvatar2">
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="saveProfile()" class="btn-primary">Saxla</button>
+            <button onclick="closeProfile()" class="btn-secondary mt-2">Bağla</button>
+        </div>
+    </div>
+
+    <!-- Private Chat Modal -->
+    <div id="privateChatModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 800px; height: 80vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <img id="privateChatAvatar" src="" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <div>
+                        <div id="privateChatName" style="font-weight: 600;"></div>
+                        <div id="privateChatInfo" style="font-size: 12px; color: #666;"></div>
+                    </div>
+                </div>
+                <button onclick="closePrivateChat()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            
+            <div id="privateMessagesContainer" style="flex: 1; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; background: #f5f7fb; margin-bottom: 16px;"></div>
+            
+            <div style="display: flex; gap: 12px;">
+                <input type="text" id="privateMessageInput" placeholder="Mesajınızı yazın..." onkeypress="handlePrivateEnter(event)" style="flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 24px;">
+                <button onclick="sendPrivateMessage()" class="send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
