@@ -49,6 +49,21 @@
 
 ## Quraşdırma və Deploy
 
+### ⚠️ ÖNƏMLİ: İlk Deploy Zamanı
+
+Render.com-a deploy etdikdən sonra **MÜTLƏQ** bu addımı icra edin:
+
+```bash
+# Render.com Shell-dən
+node migrate.js
+```
+
+Bu komanda database table-larını yaradır. **Bu olmadan sayt işləməyəcək!**
+
+### 📖 Ətraflı Deploy Guide
+
+Tam addım-addım təlimat üçün: **[DEPLOY.md](DEPLOY.md)** faylına baxın
+
 ### Render.com-da Deploy
 
 #### 1. GitHub Repo Hazırdır
@@ -212,6 +227,30 @@ npm start
 - ✅ Global error handler əlavə edildi
 - ✅ 404 handler əlavə edildi
 - ✅ Loading states optimizasiya edildi
+- ✅ Migration script ətraflı error mesajları ilə
+- ✅ Server başlayanda table check
+- ✅ DEPLOY.md tam deployment guide
+
+## ⚠️ Ümumi Problemlər və Həllər
+
+### "admin_settings does not exist" xətası
+**Səbəb**: Database migration icra edilməyib  
+**Həll**: Render.com Shell-dən `node migrate.js` icra edin
+
+### Server işləyir amma login olmur
+**Səbəb**: Environment variables yanlış konfiqurasiya olunub  
+**Həll**: DATABASE_URL, SESSION_SECRET, NODE_ENV yoxlayın və servisi restart edin
+
+### Migration "Connection refused" xətası
+**Səbəb**: Lokal şəbəkədən Render database-ə bağlanmaq mümkün deyil  
+**Həll**: Migration-ı **Render.com Shell-dən** icra edin (internal network)
+
+### Deploy uğurludur amma sayt açılmır
+**Səbəb**: Migration icra edilməyib və ya port konfiqurasiyası  
+**Həll**: 
+1. Logs-da "🚀 Server ... işləyir" mesajını axtarın
+2. `node migrate.js` icra edin
+3. Servisi restart edin
 
 ## Müəllif
 Bakı Dövlət Universiteti tələbələri üçün
