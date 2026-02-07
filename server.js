@@ -756,17 +756,44 @@ app.use((req, res) => {
 // PORT konfiqurasiyası (Render.com üçün)
 const PORT = process.env.PORT || 3000;
 
-// Test database connection
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('❌ Database bağlantı xətası:', err);
-    console.log('⚠️  Server database olmadan işləyir (bəzi funksiyalar işləməyəcək)');
-  } else {
+// Initialize database
+async function initDatabase() {
+  try {
+    console.log('🔄 Database bağlantısı yoxlanılır...');
+    
+    // Test connection
+    await pool.query('SELECT NOW()');
     console.log('✅ Database bağlantısı uğurlu');
+    
+    // Check if tables exist
+    const tableCheck = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'users'
+    `);
+    
+    if (tableCheck.rows.length === 0) {
+      console.log('⚠️  Database table-ları tapılmadı');
+      console.log('📝 Migration icra etməlisiniz: node migrate.js');
+      console.log('⚠️  Server işləyir, amma database funksiyaları işləməyəcək');
+    } else {
+      console.log('✅ Database table-ları hazırdır');
+    }
+  } catch (err) {
+    console.error('❌ Database xətası:', err.message);
+    console.log('⚠️  Server database olmadan işləyir (bəzi funksiyalar işləməyəcək)');
   }
-});
+}
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server ${PORT} portunda işləyir`);
-  console.log(`📍 http://localhost:${PORT}`);
-});
+// Start server
+async function startServer() {
+  await initDatabase();
+  
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server ${PORT} portunda işləyir`);
+    console.log(`📍 http://localhost:${PORT}`);
+  });
+}
+
+startServer();
